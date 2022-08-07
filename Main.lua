@@ -5,6 +5,15 @@ local SerializeDict, SerializeArr;
 -- Constants
 local MATH_HUGE                 = math.huge
 local MATH_HUGE_NEG             = -MATH_HUGE
+local CHAR_BYTE_MAP             = {}
+local BYTE_CHAR_MAP             = {}
+
+-- Generatee bytemaps
+for Byte = 1, 255 do
+    local Char = string.char(Byte)
+    CHAR_BYTE_MAP[Char] = Byte
+    BYTE_CHAR_MAP[Byte] = Char
+end
 
 -- Generate common numbers list
 for i = -0xFF, 0xFF do
@@ -16,7 +25,7 @@ local function BeautifyString(String: string, BeautifyStrings: boolean)
     local New = ""
     for i = 1, #String do
         local Char = string.sub(String, i, i)
-        local Code = string.byte(Char)
+        local Code = CHAR_BYTE_MAP[Char]
         New ..= (Code < 32 or Code > 127) and "\\" .. Code or Char
     end
     return New
@@ -58,7 +67,7 @@ function SerializeArr(ToSerialze: table, BeautifyStrings: boolean)
 end
 function SerializeDict(ToSerialze: table, BeautifyStrings: boolean)
     -- Initial variables
-    local Result = "{"
+    local Result = {"{"}
     local Serialized = {}
 
     -- Go through it and be funny
@@ -69,34 +78,55 @@ function SerializeDict(ToSerialze: table, BeautifyStrings: boolean)
 
         -- Optimization
         if (FinalKey and FinalValue) then
-            Result ..= ("[" .. FinalKey .. "]=" .. FinalValue .. ",")
+            Result[#Result+1] = "["
+            Result[#Result+1] = FinalKey
+            Result[#Result+1] = "]="
+            Result[#Result+1] = FinalValue
+            Result[#Result+1] = ","
             continue
         end
 
         -- Serialize this key
+        Result[#Result+1] = "["
         local KType = typeof(Key)
-        FinalKey = FinalKey
-            or (KType == "string") and "\"".. (BeautifyStrings and BeautifyString(Key) or Key) .. "\""
-            or (KType == "boolean") and (Key and "true" or "false")
-            or (KType == "number") and (Key ~= Key and "0/0" or Key == MATH_HUGE and "1/0" or Key == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Key] or tostring(Key))
-            or (KType == "table") and (#Key == 0 and not next(Key)) and "{}" or (#Key == 0) and SerializeDict(Key) or SerializeArr(Key)
+        local KIndex = #Result+1
+        if (KType == "string") then
+            Result[KIndex] = "\"" .. (BeautifyStrings and BeautifyString(Key) or Key) ..  "\""
+        elseif (KType == "boolean") then
+            Result[KIndex] = (Key and "true" or "false")
+        elseif (KType == "number") then
+            Result[KIndex] = (Key ~= Key and "0/0" or Key == MATH_HUGE and "1/0" or Key == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Key] or tostring(Key))
+        elseif (KType == "table") then
+            Result[KIndex] = (not next(Key)) and "{}" or (#Key == 0) and SerializeDict(Key) or SerializeArr(Key)
+        end
+        FinalKey = Result[KIndex]
+        Result[KIndex+1] = "]="
 
         -- Serialize this value
         local VType = typeof(Value)
-        FinalValue = FinalValue
-            or (VType == "string") and "\"".. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
-            or (VType == "boolean") and (Value and "true" or "false")
-            or (VType == "number") and (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
-            or (VType == "table") and (#Value == 0 and not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
+        local VIndex = #Result+1
+        if (VType == "string") then
+            Result[VIndex] = "\"" .. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
+        elseif (VType == "boolean") then
+            Result[VIndex] = (Value and "true" or "false")
+        elseif (VType == "number") then
+            Result[VIndex] = (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
+        elseif (VType == "table") then
+            Result[VIndex] = (not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
+        end
+        FinalValue = Result[VIndex]
+        Result[VIndex+1] = ","
 
         -- Add finished thing :3
         if not (FinalKey and FinalValue) then continue end
-        Result ..= ("[" .. FinalKey .. "]=" .. FinalValue .. ",")
         Serialized[FinalKey] = FinalValue
     end
 
     -- WTF?!
-    return Result:sub(1, -2) .. "}"
+    local Latest = Result[#Result]
+    Result[#Result] = Latest:sub(1, -2)
+    Result[#Result+1] = "}"
+    return table.concat(Result)
 end
 
 -- Return FUNCTIONS?!
