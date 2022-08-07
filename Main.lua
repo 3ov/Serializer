@@ -12,7 +12,16 @@ for i = -0xFF, 0xFF do
 end
 
 -- Serializer functions
-function SerializeArr(ToSerialze: table)
+local function BeautifyString(String: string, BeautifyStrings: boolean)
+    local New = ""
+    for i = 1, #String do
+        local Char = string.sub(String, i, i)
+        local Code = string.byte(Char)
+        New ..= (Code < 32 or Code > 127) and "\\" .. Code or Char
+    end
+    return New
+end
+function SerializeArr(ToSerialze: table, BeautifyStrings: boolean)
     -- Initial variables
     local Result = "{" .. string.rep("%s,", #ToSerialze):sub(1, -2) .. "}"
     local Completed = {}
@@ -33,7 +42,7 @@ function SerializeArr(ToSerialze: table)
         -- Serialize this value
         local VType = typeof(Value)
         FinalValue = FinalValue
-            or (VType == "string") and "\"".. Value .. "\""
+            or (VType == "string") and "\"".. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
             or (VType == "boolean") and (Value and "true" or "false")
             or (VType == "number") and (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
             or (VType == "table") and (#Value == 0 and not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
@@ -47,7 +56,7 @@ function SerializeArr(ToSerialze: table)
     -- WTF?!
     return string.format(Result, unpack(Completed))
 end
-function SerializeDict(ToSerialze: table)
+function SerializeDict(ToSerialze: table, BeautifyStrings: boolean)
     -- Initial variables
     local Result = "{"
     local Serialized = {}
@@ -67,7 +76,7 @@ function SerializeDict(ToSerialze: table)
         -- Serialize this key
         local KType = typeof(Key)
         FinalKey = FinalKey
-            or (KType == "string") and "\"".. Value .. "\""
+            or (KType == "string") and "\"".. (BeautifyStrings and BeautifyString(Key) or Key) .. "\""
             or (KType == "boolean") and (Key and "true" or "false")
             or (KType == "number") and (Key ~= Key and "0/0" or Key == MATH_HUGE and "1/0" or Key == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Key] or tostring(Key))
             or (KType == "table") and (#Key == 0 and not next(Key)) and "{}" or (#Key == 0) and SerializeDict(Key) or SerializeArr(Key)
@@ -75,7 +84,7 @@ function SerializeDict(ToSerialze: table)
         -- Serialize this value
         local VType = typeof(Value)
         FinalValue = FinalValue
-            or (VType == "string") and "\"".. Value .. "\""
+            or (VType == "string") and "\"".. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
             or (VType == "boolean") and (Value and "true" or "false")
             or (VType == "number") and (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
             or (VType == "table") and (#Value == 0 and not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
