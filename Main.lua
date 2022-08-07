@@ -32,38 +32,47 @@ local function BeautifyString(String: string, BeautifyStrings: boolean)
 end
 function SerializeArr(ToSerialze: table, BeautifyStrings: boolean)
     -- Initial variables
-    local Result = "{" .. string.rep("%s,", #ToSerialze):sub(1, -2) .. "}"
-    local Completed = {}
+    local Result = {"{"}
     local Serialized = {}
 
     -- Go through it and be funny
     for i = 1, #ToSerialze do
         -- I hate this but cope
         local Value = ToSerialze[i];
-        local FinalValue;
+        local FinalValue = Serialized[Value]
 
         -- Optimization
-        if (Serialized[Value]) then
-            Completed[i] = Serialized[Value]
+        if (FinalValue) then
+            Result[#Result+1] = FinalValue
+            Result[#Result+1] = ","
             continue
         end
 
         -- Serialize this value
         local VType = typeof(Value)
-        FinalValue = FinalValue
-            or (VType == "string") and "\"".. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
-            or (VType == "boolean") and (Value and "true" or "false")
-            or (VType == "number") and (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
-            or (VType == "table") and (#Value == 0 and not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
+        local VIndex = #Result+1
+        if (VType == "string") then
+            Result[VIndex] = "\"" .. (BeautifyStrings and BeautifyString(Value) or Value) .. "\""
+        elseif (VType == "boolean") then
+            Result[VIndex] = (Value and "true" or "false")
+        elseif (VType == "number") then
+            Result[VIndex] = (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
+        elseif (VType == "table") then
+            Result[VIndex] = (not next(Value)) and "{}" or (#Value == 0) and SerializeDict(Value) or SerializeArr(Value)
+        end
+        FinalValue = Result[VIndex]
+        Result[VIndex+1] = ","
 
         -- Add finished thing :3
         if (not FinalValue) then continue end
-        Completed[i] = FinalValue
         Serialized[Value] = FinalValue
     end
 
     -- WTF?!
-    return string.format(Result, unpack(Completed))
+    local Latest = Result[#Result]
+    Result[#Result] = Latest:sub(1, -2)
+    Result[#Result+1] = "}"
+    return table.concat(Result)
 end
 function SerializeDict(ToSerialze: table, BeautifyStrings: boolean)
     -- Initial variables
