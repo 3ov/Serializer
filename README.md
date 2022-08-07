@@ -11,8 +11,8 @@ Stringifies the array, the fastest of the functions.
 ```lua
 SerializeDict(ToSerialize: table, BeautifyStrings: boolean) -> string
 ```
-Stringifies the dictionary.
+Stringifies a dictionary, similar performance to SerializeArr.
 ```lua
 SerializeBeauty(ToSerialize: table, Indent: number) -> string
 ```
-The slowest of the functions, adds indents to the result and beautifies strings by default
+Up to 4x slower than the other functions, adds indents to the result and beautifies strings by default
