@@ -3,17 +3,17 @@
 ```lua 
 SerializeArr(ToSerialize: table, BeautifyStrings: boolean) -> string
 ```
-<br/>
+\n
 Stringifies the array, the fastest of the functions.
-<br/>
+\n
 ```lua
 SerializeDict(ToSerialize: table, BeautifyStrings: boolean) -> string
 ```
-<br/>
+\n
 Stringifies the dictionary.
-<br/>
+\n
 ```lua
 SerializeBeauty(ToSerialize: table, Indent: number) -> string
 ```
-<br/>
+\n
 The slowest of the functions, adds indents to the result and uses beautifystrings by default
