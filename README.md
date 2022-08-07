@@ -1,4 +1,9 @@
-**Docs**
+## Import
+```lua
+local SerializeDict, SerializeArr, SerializeBeauty = loadstring(syn.request({Url = "https://raw.githubusercontent.com/3ov/Serializer/main/Main.lua", Method  = "GET"}).Body)()
+```
+
+## Docs
 ```lua 
 SerializeArr(ToSerialize: table, BeautifyStrings: boolean) -> string
 ```
