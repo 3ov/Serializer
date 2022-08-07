@@ -3,7 +3,7 @@ local CommonNumbers             = {}
 local SerializeDict, SerializeArr, SerializeBeauty;
 
 -- Constants
-local INDENT_CHAR                = " "
+local INDENT_CHAR                = "    "
 local MATH_HUGE                 = math.huge
 local MATH_HUGE_NEG             = -MATH_HUGE
 local CHAR_BYTE_MAP             = {}
@@ -29,24 +29,6 @@ local function BeautifyString(String: string, BeautifyStrings: boolean)
         local Code = CHAR_BYTE_MAP[Char]
         New ..= (Code < 32 or Code > 127) and "\\" .. Code or Char
     end
-    return New
-end
-local function IndentString(String: string, Level: number)
-    local New = string.rep(INDENT_CHAR, Level)
-    local Last = 0
-    for i = 1, #String do
-        local Char = string.sub(String, i, i)
-        if not (Char == "\n") then continue end
-        New ..= string.sub(String, Last + 1, i) .. string.rep(INDENT_CHAR, Level)
-        Last = i
-    end
-
-    local Leftovers = string.sub(String, Last + 1, #String)
-    if (#Leftovers > 0) then
-        warn(Leftovers)
-        New ..= Leftovers
-    end
-
     return New
 end
 function SerializeArr(ToSerialze: table, BeautifyStrings: boolean)
@@ -156,10 +138,12 @@ function SerializeDict(ToSerialze: table, BeautifyStrings: boolean)
     Result[#Result+1] = "}"
     return table.concat(Result)
 end
-function SerializeBeauty(ToSerialze: table)
+function SerializeBeauty(ToSerialze: table, Indent: number)
     -- Initial variables
     local Result = {"{\n"}
+    local Indent = Indent or 0
     local Serialized = {}
+    local Indents = string.rep(INDENT_CHAR, Indent)
 
     -- Go through it and be funny
     for Key, Value in next, ToSerialze do
@@ -169,6 +153,7 @@ function SerializeBeauty(ToSerialze: table)
 
         -- Optimization
         if (FinalKey and FinalValue) then
+            Result[#Result+1] = Indents .. INDENT_CHAR
             Result[#Result+1] = "["
             Result[#Result+1] = FinalKey
             Result[#Result+1] = "]="
@@ -178,7 +163,8 @@ function SerializeBeauty(ToSerialze: table)
         end
 
         -- Serialize this key
-        Result[#Result+1] = INDENT_CHAR .. "["
+        Result[#Result+1] = Indents .. INDENT_CHAR
+        Result[#Result+1] = "["
         local KType = typeof(Key)
         local KIndex = #Result+1
         if (KType == "string") then
@@ -188,7 +174,7 @@ function SerializeBeauty(ToSerialze: table)
         elseif (KType == "number") then
             Result[KIndex] = (Key ~= Key and "0/0" or Key == MATH_HUGE and "1/0" or Key == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Key] or tostring(Key))
         elseif (KType == "table") then
-            Result[KIndex] = (not next(Key)) and "{}" or IndentString(SerializeBeauty(Key):sub(3, -3), 1)
+            Result[KIndex] = (not next(Key)) and "{}" or (#Key == 0) and SerializeDict(Key) or SerializeArr(Key) -- This is intentional, I don't want to beautify keys as that would look WRONG
         else
             Result[KIndex] = tostring(Key)
         end
@@ -205,7 +191,7 @@ function SerializeBeauty(ToSerialze: table)
         elseif (VType == "number") then
             Result[VIndex] = (Value ~= Value and "0/0" or Value == MATH_HUGE and "1/0" or Value == MATH_HUGE_NEG and "-1/0" or CommonNumbers[Value] or tostring(Value))
         elseif (VType == "table") then
-            Result[VIndex] = (not next(Value)) and "{}" or IndentString(SerializeBeauty(Value):sub(3, -3), 1)
+            Result[VIndex] = (not next(Value)) and "{}" or SerializeBeauty(Value, Indent + 1)
         else
             Result[VIndex] = tostring(Value)
         end
@@ -220,6 +206,8 @@ function SerializeBeauty(ToSerialze: table)
     -- WTF?!
     local Latest = Result[#Result]
     Result[#Result] = Latest:sub(1, -3)
+    Result[#Result+1] = "\n"
+    Result[#Result+1] = Indents
     Result[#Result+1] = "}"
     return table.concat(Result)
 end
